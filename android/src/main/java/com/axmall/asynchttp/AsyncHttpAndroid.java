@@ -74,7 +74,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
                 @Override
                 public void onFailure(int statusCode, Header[] headers, byte[] response, Throwable error) {
                     WritableMap responseMap = populateResponseData(statusCode, headers, response);
-                    cb.invoke(error.getMessage(), responseMap);
+                    cb.invoke(error.toString(), responseMap);
                 }
             });
 
@@ -89,14 +89,24 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     }
 
     private WritableMap populateResponseData(int statusCode, Header[] headers, byte[] response) {
-        WritableMap responseMap = Arguments.createMap();
         WritableMap headersMap = Arguments.createMap();
-        for (Header header: headers) {
-            headersMap.putString(header.getName().toLowerCase(), header.getValue());
+        if (headers == null) {
+            headersMap = null;
+        } else {
+            for (Header header: headers) {
+                headersMap.putString(header.getName().toLowerCase(), header.getValue());
+            }
         }
+
+        WritableMap responseMap = Arguments.createMap();
+
         responseMap.putInt("status", statusCode);
         responseMap.putMap("headers", headersMap);
-        responseMap.putString("body", new String(response));
+        if (response == null) {
+            responseMap.putString("body", null);
+        } else {
+            responseMap.putString("body", new String(response));
+        }
         return responseMap;
     }
 }
