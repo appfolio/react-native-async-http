@@ -33,8 +33,17 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void get(String url, final Callback cb) {
+    public void get(String url, ReadableMap headers, final Callback cb) {
+
         try {
+            clearHeaders();
+            ReadableMapKeySetIterator headerIterator = headers.keySetIterator();
+
+            while (headerIterator.hasNextKey()) {
+                String key = headerIterator.nextKey();
+                httpClient.addHeader(key, headers.getString(key));
+            }
+
             httpClient.get(url, new AsyncHttpResponseHandler() {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, byte[] response) {
@@ -54,14 +63,23 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void post(String url, ReadableMap data, final Callback cb) {
-        try {
-            RequestParams params = new RequestParams();
-            ReadableMapKeySetIterator iterator = data.keySetIterator();
+    public void post(String url, ReadableMap data, ReadableMap headers, final Callback cb) {
 
-            while (iterator.hasNextKey()) {
-                String key = iterator.nextKey();
+        try {
+            clearHeaders();
+            RequestParams params = new RequestParams();
+            ReadableMapKeySetIterator dataIterator = data.keySetIterator();
+
+            while (dataIterator.hasNextKey()) {
+                String key = dataIterator.nextKey();
                 params.put(key, data.getString(key));
+            }
+
+            ReadableMapKeySetIterator headerIterator = headers.keySetIterator();
+
+            while (headerIterator.hasNextKey()) {
+                String key = headerIterator.nextKey();
+                httpClient.addHeader(key, headers.getString(key));
             }
 
             httpClient.post(url, params, new AsyncHttpResponseHandler() {
@@ -86,6 +104,11 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     @ReactMethod
     public void clearCookies() {
         this.cookieStore.clear();
+    }
+
+    private void clearHeaders() {
+        httpClient.removeAllHeaders();
+        httpClient.addHeader("X-Requested-With", "XMLHttpRequest");
     }
 
     private WritableMap populateResponseData(int statusCode, Header[] headers, byte[] response) {
