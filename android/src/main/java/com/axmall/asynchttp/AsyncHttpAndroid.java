@@ -54,7 +54,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
                 @Override
                 public void onFailure(int statusCode, Header[] headers, byte[] response, Throwable error) {
                     WritableMap responseMap = populateResponseData(statusCode, headers, response);
-                    cb.invoke(error.getMessage(), responseMap);
+                    cb.invoke(error.toString(), responseMap);
                 }
             });
         } catch(Exception e) {
