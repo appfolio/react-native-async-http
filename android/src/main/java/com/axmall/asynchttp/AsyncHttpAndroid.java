@@ -36,7 +36,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     public void get(String url, ReadableMap headers, final Callback cb) {
 
         try {
-            clearHeaders();
+            resetHeaders();
             ReadableMapKeySetIterator headerIterator = headers.keySetIterator();
 
             while (headerIterator.hasNextKey()) {
@@ -66,7 +66,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     public void post(String url, ReadableMap data, ReadableMap headers, final Callback cb) {
 
         try {
-            clearHeaders();
+            resetHeaders();
             RequestParams params = new RequestParams();
             ReadableMapKeySetIterator dataIterator = data.keySetIterator();
 
@@ -106,7 +106,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
         this.cookieStore.clear();
     }
 
-    private void clearHeaders() {
+    private void resetHeaders() {
         httpClient.removeAllHeaders();
         httpClient.addHeader("X-Requested-With", "XMLHttpRequest");
     }
