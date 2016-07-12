@@ -3,7 +3,6 @@ package com.smccz.asynchttp;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 
@@ -11,7 +10,6 @@ import cz.msebera.android.httpclient.Header;
 
 import com.facebook.react.bridge.WritableMap;
 import com.loopj.android.http.*;
-import java.nio.charset.StandardCharsets;
 
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
@@ -35,8 +33,17 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void get(String url, final Callback cb) {
+    public void get(String url, ReadableMap headers, final Callback cb) {
+
         try {
+            resetHeaders();
+            ReadableMapKeySetIterator headerIterator = headers.keySetIterator();
+
+            while (headerIterator.hasNextKey()) {
+                String key = headerIterator.nextKey();
+                httpClient.addHeader(key, headers.getString(key));
+            }
+
             httpClient.get(url, new AsyncHttpResponseHandler() {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, byte[] response) {
@@ -47,7 +54,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
                 @Override
                 public void onFailure(int statusCode, Header[] headers, byte[] response, Throwable error) {
                     WritableMap responseMap = populateResponseData(statusCode, headers, response);
-                    cb.invoke(error.getMessage(), responseMap);
+                    cb.invoke(error.toString(), responseMap);
                 }
             });
         } catch(Exception e) {
@@ -56,14 +63,23 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void post(String url, ReadableMap data, final Callback cb) {
-        try {
-            RequestParams params = new RequestParams();
-            ReadableMapKeySetIterator iterator = data.keySetIterator();
+    public void post(String url, ReadableMap data, ReadableMap headers, final Callback cb) {
 
-            while (iterator.hasNextKey()) {
-                String key = iterator.nextKey();
+        try {
+            resetHeaders();
+            RequestParams params = new RequestParams();
+            ReadableMapKeySetIterator dataIterator = data.keySetIterator();
+
+            while (dataIterator.hasNextKey()) {
+                String key = dataIterator.nextKey();
                 params.put(key, data.getString(key));
+            }
+
+            ReadableMapKeySetIterator headerIterator = headers.keySetIterator();
+
+            while (headerIterator.hasNextKey()) {
+                String key = headerIterator.nextKey();
+                httpClient.addHeader(key, headers.getString(key));
             }
 
             httpClient.post(url, params, new AsyncHttpResponseHandler() {
@@ -76,7 +92,7 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
                 @Override
                 public void onFailure(int statusCode, Header[] headers, byte[] response, Throwable error) {
                     WritableMap responseMap = populateResponseData(statusCode, headers, response);
-                    cb.invoke(error.getMessage(), responseMap);
+                    cb.invoke(error.toString(), responseMap);
                 }
             });
 
@@ -90,15 +106,30 @@ public class AsyncHttpAndroid extends ReactContextBaseJavaModule {
         this.cookieStore.clear();
     }
 
+    private void resetHeaders() {
+        httpClient.removeAllHeaders();
+        httpClient.addHeader("X-Requested-With", "XMLHttpRequest");
+    }
+
     private WritableMap populateResponseData(int statusCode, Header[] headers, byte[] response) {
-        WritableMap responseMap = Arguments.createMap();
         WritableMap headersMap = Arguments.createMap();
-        for (Header header: headers) {
-            headersMap.putString(header.getName().toLowerCase(), header.getValue());
+        if (headers == null) {
+            headersMap = null;
+        } else {
+            for (Header header: headers) {
+                headersMap.putString(header.getName().toLowerCase(), header.getValue());
+            }
         }
+
+        WritableMap responseMap = Arguments.createMap();
+
         responseMap.putInt("status", statusCode);
         responseMap.putMap("headers", headersMap);
-        responseMap.putString("body", new String(response));
+        if (response == null) {
+            responseMap.putString("body", null);
+        } else {
+            responseMap.putString("body", new String(response));
+        }
         return responseMap;
     }
 }
